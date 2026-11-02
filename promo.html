@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>肥嘟嘟 · img2threejs 技能宣传片</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    width:1080px; height:1920px; overflow:hidden;
+    background:#0e1430;
+    font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+    color:#fff;
+  }
+  #bg { position:fixed; inset:0; z-index:0; display:block; }
+  /* 顶部品牌条 */
+  #brand {
+    position:fixed; top:46px; left:0; right:0; z-index:5; text-align:center;
+    font-size:30px; letter-spacing:2px; color:#ffd24a; font-weight:800;
+    text-shadow:0 2px 12px rgba(0,0,0,.4);
+  }
+  #brand small { display:block; font-size:20px; color:#cfe0ff; font-weight:500; margin-top:6px; letter-spacing:4px; }
+
+  /* 阶段标签（模型旁） */
+  #stageTag {
+    position:fixed; top:150px; left:64px; z-index:6;
+    text-align:left; opacity:0; transition:opacity .4s;
+    background:rgba(14,20,48,.78); border:2px solid rgba(255,210,74,.55);
+    border-radius:24px; padding:20px 30px; backdrop-filter:blur(6px);
+  }
+  #stageTag .num { font-size:72px; font-weight:900; color:#ffd24a; line-height:1; text-shadow:0 3px 16px rgba(0,0,0,.5); }
+  #stageTag .nm  { font-size:44px; font-weight:800; margin-top:6px; }
+  #stageTag .ds  { font-size:26px; color:#dfe8ff; margin-top:10px; max-width:560px; }
+
+  /* 场景容器 */
+  .scene { position:fixed; inset:0; z-index:4; opacity:0; pointer-events:none; transition:opacity .5s; }
+  .scene.active { opacity:1; }
+
+  /* 底部卡片面板 */
+  .panel {
+    position:absolute; left:60px; right:60px; bottom:120px;
+    background:rgba(14,20,48,.82); border:2px solid rgba(255,210,74,.5);
+    border-radius:34px; padding:46px 48px; backdrop-filter:blur(6px);
+    box-shadow:0 18px 60px rgba(0,0,0,.45);
+  }
+  .panel h1 { font-size:72px; font-weight:900; line-height:1.12; }
+  .panel h1 .hl { color:#ffd24a; }
+  .panel p  { font-size:34px; color:#d7e2ff; margin-top:22px; line-height:1.5; }
+
+  /* 安装终端 */
+  .term {
+    position:absolute; left:80px; right:80px; bottom:130px;
+    background:#0a0f24; border-radius:26px; overflow:hidden;
+    border:2px solid rgba(120,200,255,.35); box-shadow:0 18px 60px rgba(0,0,0,.5);
+    font-family:"Cascadia Code","Consolas",monospace;
+  }
+  .term .bar { background:#1b2547; padding:18px 26px; font-size:24px; color:#9fb4e6; display:flex; gap:14px; align-items:center; }
+  .term .bar i { width:18px; height:18px; border-radius:50%; display:inline-block; }
+  .term .bar .r{background:#ff5f56}.term .bar .y{background:#ffbd2e}.term .bar .g{background:#27c93f}
+  .term .body { padding:30px 30px 34px; font-size:30px; line-height:1.7; white-space:pre-wrap; color:#e6f0ff; min-height:440px; }
+  .term .body .c { color:#7fe08a; } .term .body .p { color:#ffd24a; } .term .body .b { color:#7fb8ff; }
+
+  /* 场景卡片 */
+  .cards { position:absolute; left:80px; right:80px; bottom:130px; display:grid; grid-template-columns:1fr 1fr; gap:30px; }
+  .card {
+    background:rgba(255,255,255,.10); border:2px solid rgba(255,210,74,.45);
+    border-radius:28px; padding:38px 30px; opacity:0; transform:translateY(40px) scale(.96);
+  }
+  .card.show { opacity:1; transform:none; transition:all .5s cubic-bezier(.2,.9,.3,1.2); }
+  .card .ic { font-size:64px; }
+  .card .t  { font-size:34px; font-weight:800; margin-top:14px; }
+  .card .d  { font-size:25px; color:#cfdcff; margin-top:10px; line-height:1.45; }
+
+  /* 8阶段进度 */
+  .steps {
+    position:absolute; left:70px; right:70px; bottom:140px;
+    background:rgba(14,20,48,.9); border:2px solid rgba(255,210,74,.4);
+    border-radius:28px; padding:24px 22px 10px;
+  }
+  .step {
+    display:flex; align-items:center; gap:22px; padding:14px 24px; margin-bottom:12px;
+    border-radius:18px; background:rgba(255,255,255,.05); border:2px solid transparent;
+    font-size:29px; color:#aebbdd; opacity:.55; transition:all .35s;
+  }
+  .step .k { width:54px; height:54px; border-radius:50%; background:#26365f; display:grid; place-items:center; font-size:26px; font-weight:800; color:#9fb4e6; flex:0 0 auto; }
+  .step.on { opacity:1; background:rgba(255,210,74,.12); border-color:rgba(255,210,74,.45); color:#eaf1ff; }
+  .step.cur { opacity:1; background:rgba(255,210,74,.30); border-color:#ffd24a; color:#fff; transform:translateX(14px) scale(1.02); box-shadow:0 0 22px rgba(255,210,74,.45); }
+  .step.on .k { background:#ffd24a; color:#1a1330; }
+
+  /* CTA */
+  #s-cta .panel { text-align:center; }
+  #s-cta .big { font-size:60px; font-weight:900; color:#ffd24a; }
+  #s-cta .arrow { font-size:38px; color:#fff; margin-top:18px; }
+  #s-cta .sub { font-size:28px; color:#cfe0ff; margin-top:14px; }
+
+  /* 时间线进度条 */
+  #tl { position:fixed; left:0; bottom:0; height:10px; width:0%; background:linear-gradient(90deg,#ffd24a,#ff8a3a); z-index:9; transition:width .2s linear; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.js",
+    "three/addons/": "./vendor/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+  <canvas id="bg"></canvas>
+
+  <div id="brand">WorkBuddy <small>× img2threejs 程序化 3D 建模</small></div>
+
+  <div id="stageTag"><div class="num">1</div><div class="nm">粗模</div><div class="ds"></div></div>
+
+  <!-- 场景 1 HOOK -->
+  <section class="scene active" id="s-hook">
+    <div class="panel">
+      <h1>一张图 → <span class="hl">会转的 3D 玩偶</span></h1>
+      <p>AI 把一张照片，变成可在浏览器里自由旋转、实时调参的 Three.js 模型。</p>
+    </div>
+  </section>
+
+  <!-- 场景 2 安装 -->
+  <section class="scene" id="s-install">
+    <div class="term">
+      <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>bash — WorkBuddy 终端</span></div>
+      <div class="body" id="termBody"></div>
+    </div>
+  </section>
+
+  <!-- 场景 3 应用场景 -->
+  <section class="scene" id="s-scenes">
+    <div class="cards" id="cards">
+      <div class="card"><div class="ic">🧸</div><div class="t">手办 / IP 角色</div><div class="d">一张图变 3D，做周边、做展示</div></div>
+      <div class="card"><div class="ic">📦</div><div class="t">产品 / 包装</div><div class="d">快速 3D 化，出图出演示</div></div>
+      <div class="card"><div class="ic">🖼️</div><div class="t">任意图片</div><div class="d">自动生成纯 Three.js 代码</div></div>
+      <div class="card"><div class="ic">🔧</div><div class="t">可旋转·可改</div><div class="d">不是死模型，可二次编辑</div></div>
+    </div>
+  </section>
+
+  <!-- 场景 4 8阶段雕刻 -->
+  <section class="scene" id="s-build">
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <!-- 场景 5 CTA -->
+  <section class="scene" id="s-cta">
+    <div class="panel">
+      <div class="big">在线把玩「肥嘟嘟」🐾</div>
+      <div class="arrow">👉 主页 / 评论区 获取把玩链接</div>
+      <div class="sub">WorkBuddy × img2threejs · 程序化 3D 建模</div>
+    </div>
+  </section>
+
+  <div id="tl"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ---------- 肥嘟嘟模型（带 8 阶段显隐） ---------- */
+const YELLOW=new THREE.Color('#ffcf3a'), CREAM=new THREE.Color('#ffe9a8'),
+      NOSE=new THREE.Color('#6b3a1f'), PUPIL=new THREE.Color('#3a241a'), WHITE=new THREE.Color('#ffffff');
+const DEFAULTS={bellyBulge:1,earSpread:1,noseSize:1,eyeSize:1,tailLift:1,bodyHue:0,lean:0.04,facing:-0.30};
+
+function buildBodyGeometry(){
+  const profile=[[0.02,-1.20],[0.55,-1.05],[0.95,-0.80],[1.20,-0.45],[1.24,-0.10],
+    [1.14,0.25],[0.96,0.58],[0.82,0.88],[0.72,1.12],[0.52,1.32],[0.22,1.44],[0.00,1.50]]
+    .map(([r,y])=>new THREE.Vector2(r,y));
+  const g=new THREE.LatheGeometry(profile,120,Math.PI*1.5,Math.PI*2); g.computeVertexNormals(); return g;
+}
+function applyBelly(geo,b){
+  const pos=geo.attributes.position, cols=new Float32Array(pos.count*3), c=new THREE.Color();
+  for(let i=0;i<pos.count;i++){const y=pos.getY(i),z=pos.getZ(i);
+    const m=THREE.MathUtils.clamp((1-THREE.MathUtils.smoothstep(y,0.10,1.00))*(THREE.MathUtils.smoothstep(z,-0.10,0.95))*b,0,1);
+    c.copy(YELLOW).lerp(CREAM,m*0.9); cols[i*3]=c.r;cols[i*3+1]=c.g;cols[i*3+2]=c.b;}
+  geo.setAttribute('color',new THREE.BufferAttribute(cols,3));
+}
+function taperedTube(curve,seg,rB,rT,rad){
+  const g=new THREE.TubeGeometry(curve,seg,1,rad,false),pos=g.attributes.position,v=new THREE.Vector3(),c=new THREE.Vector3();
+  for(let i=0;i<=seg;i++){const t=i/seg;curve.getPointAt(t,c);const r=rB+(rT-rB)*t;
+    for(let j=0;j<=rad;j++){const idx=i*(rad+1)+j;v.fromBufferAttribute(pos,idx).sub(c).multiplyScalar(r).add(c);pos.setXYZ(idx,v.x,v.y,v.z);}}
+  g.computeVertexNormals();return g;}
+function orientBetween(mesh,from,to){const d=new THREE.Vector3().subVectors(to,from);
+  mesh.position.copy(from).addScaledVector(d,.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());}
+
+function createFeedudu(){
+  const root=new THREE.Group(); const facing=new THREE.Group(); const g=new THREE.Group();
+  root.add(facing); facing.add(g);
+  const bodyMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6,metalness:0});
+  const yMat=new THREE.MeshStandardMaterial({color:YELLOW.clone(),roughness:.6,metalness:0});
+  const nMat=new THREE.MeshStandardMaterial({color:NOSE.clone(),roughness:.3,metalness:0});
+  const sMat=new THREE.MeshStandardMaterial({color:WHITE.clone(),roughness:.28,metalness:0});
+  const pMat=new THREE.MeshStandardMaterial({color:PUPIL.clone(),roughness:.2,metalness:0});
+  const shMat=new THREE.MeshStandardMaterial({color:WHITE.clone(),roughness:.05,metalness:0});
+
+  const bodyGeo=buildBodyGeometry(); applyBelly(bodyGeo,1);
+  const body=new THREE.Mesh(bodyGeo,bodyMat); body.castShadow=body.receiveShadow=true; g.add(body);
+
+  const earL=new THREE.Mesh(new THREE.CapsuleGeometry(.17,.90,12,20),yMat); earL.position.set(-.36,1.45,-.05); earL.castShadow=true;
+  const earR=new THREE.Mesh(new THREE.CapsuleGeometry(.21,1.18,12,22),yMat); earR.position.set(.40,1.46,-.05); earR.castShadow=true;
+  const ears=new THREE.Group(); ears.add(earL,earR); g.add(ears);
+
+  const nose=new THREE.Mesh((()=>{const x=new THREE.SphereGeometry(1,32,24);x.scale(.24,.20,.18);return x;})(),nMat);
+  nose.position.set(0,.82,.84); nose.rotation.x=.16;
+  const eyeDefs=[{x:-.24,y:1.08,z:.86},{x:.24,y:1.02,z:.86}];
+  const eyes=new THREE.Group();
+  eyeDefs.forEach(d=>{const eg=new THREE.Group();
+    eg.add(new THREE.Mesh(new THREE.SphereGeometry(.16,28,22).scale(1,1.12,.92),sMat));
+    const pu=new THREE.Mesh(new THREE.SphereGeometry(.09,24,18),pMat); pu.position.set(0,0,.11);
+    const sh=new THREE.Mesh(new THREE.SphereGeometry(.034,14,10),shMat); sh.position.set(-.03,.038,.165);
+    eg.add(pu,sh); eg.position.set(d.x,d.y,d.z); eyes.add(eg);});
+  const face=new THREE.Group(); face.add(nose,eyes); g.add(face);
+
+  const limbs=new THREE.Group();
+  [-1,1].forEach(side=>{const ag=new THREE.Group();
+    const sh=new THREE.Vector3(side*.80,.55,.85), pw=new THREE.Vector3(side*.18,.15,1.20);
+    const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.17,.55,8,16),yMat); orientBetween(arm,sh,pw);
+    const paw=new THREE.Mesh(new THREE.SphereGeometry(.19,18,14),yMat); paw.position.copy(pw);
+    ag.add(arm,paw); ag.castShadow=true; limbs.add(ag);});
+  [-1,1].forEach(side=>{const ft=new THREE.Mesh((()=>{const x=new THREE.SphereGeometry(1,22,16);x.scale(.34,.26,.52);return x;})(),yMat);
+    ft.position.set(side*.54,-1.00,.80); ft.rotation.set(-.35, -side*.32, side*.62); ft.castShadow=true; limbs.add(ft);});
+  const tailCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(.60,-.55,-.50),new THREE.Vector3(1.10,-.60,-.28),
+    new THREE.Vector3(1.45,-.15,.05),new THREE.Vector3(1.25,.45,.20)]);
+  const tail=new THREE.Mesh(taperedTube(tailCurve,72,.28,.12,18),yMat); tail.castShadow=true;
+  const tip=new THREE.Vector3(); tailCurve.getPointAt(1,tip);
+  const tipBall=new THREE.Mesh(new THREE.SphereGeometry(.12,18,14),yMat); tipBall.position.copy(tip);
+  limbs.add(tail,tipBall); g.add(limbs);
+
+  function applyPose(){earL.rotation.set(0,0,THREE.MathUtils.degToRad(20)); earL.rotation.x=-.15;
+    earR.rotation.set(0,0,-THREE.MathUtils.degToRad(60)); earR.rotation.x=-.15; facing.rotation.y=DEFAULTS.facing; root.rotation.z=DEFAULTS.lean;}
+  applyPose();
+
+  // 阶段显隐：1身体 2+耳 3+脸+四肢 4..8全显
+  function setStage(s){
+    body.visible=true; ears.visible=s>=2; face.visible=s>=3; limbs.visible=s>=3;
+    return s;
+  }
+  return {root,g,setStage};
+}
+
+/* ---------- 渲染 ---------- */
+const canvas=document.getElementById('bg');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+renderer.setPixelRatio(1); renderer.setSize(1080,1920);
+renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();
+scene.background=new THREE.Color('#0e1430');
+scene.fog=new THREE.Fog('#0e1430',9,18);
+const camera=new THREE.PerspectiveCamera(38,1080/1920,0.1,100); camera.position.set(0.2,1.0,8.6);
+const controls=new OrbitControls(camera,canvas); controls.enableDamping=true; controls.target.set(0,0.2,0);
+controls.enablePan=false; controls.minDistance=4; controls.maxDistance=12; controls.autoRotate=true; controls.autoRotateSpeed=1.4;
+
+const hemi=new THREE.HemisphereLight(0xffffff,0x35406a,1.0); scene.add(hemi);
+const key=new THREE.DirectionalLight(0xfff0d8,1.25); key.position.set(-4,7,6); key.castShadow=true;
+key.shadow.mapSize.set(1024,1024); key.shadow.camera.far=25; key.shadow.bias=-.0004; scene.add(key);
+const rim=new THREE.DirectionalLight(0x88aaff,0.5); rim.position.set(5,2,-4); scene.add(rim);
+const ground=new THREE.Mesh(new THREE.CircleGeometry(9,64),new THREE.ShadowMaterial({opacity:.28}));
+ground.rotation.x=-Math.PI/2; ground.position.y=-1.3; ground.receiveShadow=true; scene.add(ground);
+
+const model=createFeedudu(); scene.add(model.root); model.setStage(1);
+// 起始：只显示身体（粗模），随建模场景逐步显形
+model.setStage(1);
+
+/* ---------- 时间线控制器 ---------- */
+const STAGES=[
+  {n:1,nm:'粗模',ds:'梨形旋转体，头身融合'},
+  {n:2,nm:'结构',ds:'挂载双耳，确立层级'},
+  {n:3,nm:'形体',ds:'脸/臂/脚/尾 雕刻成形'},
+  {n:4,nm:'材质',ds:'黄身 + 米白肚 顶点色'},
+  {n:5,nm:'表面',ds:'哑光黏土质感 roughness'},
+  {n:6,nm:'光照',ds:'三点光 + 柔和阴影'},
+  {n:7,nm:'交互',ds:'OrbitControls 自由旋转 + GUI 调参'},
+  {n:8,nm:'优化',ds:'复用材质 / 合理分段 / 可二次编辑'},
+];
+const stepsEl=document.getElementById('steps');
+STAGES.forEach(s=>{const d=document.createElement('div'); d.className='step'; d.dataset.n=s.n;
+  d.innerHTML=`<div class="k">${s.n}</div><div><b>${s.nm}</b> · ${s.ds}</div>`; stepsEl.appendChild(d);});
+
+const tlEl=document.getElementById('tl');
+const tag=document.getElementById('stageTag');
+const TOTAL=52;
+let started=performance.now();
+
+function setScene(id){
+  document.querySelectorAll('.scene').forEach(s=>s.classList.toggle('active',s.id===id));
+}
+function typeTerminal(){
+  const el=document.getElementById('termBody');
+  const lines=[
+    {t:'$ npx img2threejs install',c:'p'},
+    {t:'✓ 已识别 WorkBuddy  (~/.workbuddy)',c:'c'},
+    {t:'✓ 技能已安装到  ~/.workbuddy/skills/img2threejs',c:'c'},
+    {t:'$ npx img2threejs doctor',c:'p'},
+    {t:'  host        status',c:'b'},
+    {t:'  workbuddy   ✓ detected',c:'c'},
+    {t:'  claude      ✓ detected',c:'c'},
+    {t:'  codex       ✓ detected',c:'c'},
+    {t:'  🎉 全部就绪，开始建模！',c:'c'},
+  ];
+  el.innerHTML=''; let i=0;
+  const tick=()=>{ if(i>=lines.length)return;
+    const ln=lines[i++]; const span=document.createElement('span'); span.className=ln.c; span.textContent=ln.t+'\n'; el.appendChild(span);
+    setTimeout(tick, 620);
+  };
+  setTimeout(tick, 500);
+}
+
+function loop(){
+  const t=(performance.now()-started)/1000;
+  tlEl.style.width=Math.min(100,(t/TOTAL)*100)+'%';
+  // 场景切换
+  if(t<22){
+    model.setStage(8); tag.style.opacity=0;
+    if(t<5) setScene('s-hook');
+    else if(t<13){ if(!document.getElementById('termBody').dataset.done){document.getElementById('termBody').dataset.done='1'; typeTerminal();} setScene('s-install'); }
+    else { setScene('s-scenes');
+      document.querySelectorAll('#cards .card').forEach((c,idx)=>setTimeout(()=>c.classList.add('show'), idx*180)); }
+  }
+  else if(t<44){ setScene('s-build');
+    const st=Math.min(8, Math.floor((t-22)/((44-22)/8))+1);
+    model.setStage(st);
+    tag.style.opacity=1; tag.querySelector('.num').textContent=STAGES[st-1].n;
+    tag.querySelector('.nm').textContent=STAGES[st-1].nm; tag.querySelector('.ds').textContent=STAGES[st-1].ds;
+    document.querySelectorAll('#steps .step').forEach(s=>{const n=+s.dataset.n; s.classList.toggle('on', n<st); s.classList.toggle('cur', n===st);});
+    controls.autoRotate=true;
+  }
+  else { setScene('s-cta'); tag.style.opacity=0; model.setStage(8); controls.autoRotate=true; }
+
+  controls.update();
+  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
